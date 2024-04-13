@@ -4,23 +4,23 @@ using UnityEngine;
 
 public class MainBuildingScript : MonoBehaviour
 {
-    public int health = 100; // Количество жизней главного здания
+    public int maxHealth = 50; // Максимальное количество жизней главного здания
+
+    private int currentHealth; // Текущее количество жизней главного здания
+
+    void Start()
+    {
+        currentHealth = maxHealth;
+    }
 
     public void TakeDamage(int damage)
     {
-        health -= damage; // Уменьшаем количество жизней после получения урона
+        currentHealth -= damage; // Уменьшаем жизни главного здания
 
-        // Если у главного здания закончились жизни, завершаем игру или делаем что-то еще
-        if (health <= 0)
+        if (currentHealth <= 0)
         {
-            // Пример: завершаем игру
-            Debug.Log("Главное здание разрушено!");
-            // Можно вызвать метод, отвечающий за завершение игры, или выполнить другие действия, например, показать экран поражения.
+            // Если жизни закончились, сообщаем об окончании игры
+            Debug.Log("Главное здание разрушено! Игра окончена!");
         }
-    }
-
-    public bool IsDestroyed()
-    {
-        return health <= 0;
     }
 }

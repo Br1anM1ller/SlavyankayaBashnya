@@ -4,82 +4,120 @@ using UnityEngine;
 
 public class EnemyScript : MonoBehaviour
 {
-    public float speed = 5f; // Скорость движения моба
-    public int attackDamage = 1; // Урон, который наносит моб
-    public float attackSpeed = 2f; // Скорость атаки моба (в секундах)
+    public float speed = 2f; // Скорость моба
+    public int damage = 1; // Урон моба
     public int maxHealth = 10; // Максимальное количество жизней моба
+    public float attackSpeed = 1f; // Скорость атаки моба (атаки в секундах)
+    public float attackDistance = 1.5f; // Дистанция, на которой моб начинает атаку
 
     private int currentHealth; // Текущее количество жизней моба
-    private Transform target; // Цель, к которой движется моб (стена)
-    private bool roadOpen = false; // Флаг, показывающий, открыта ли дорога
+    private Transform target; // Цель моба (начинает с направленной на стену)
+    private float lastAttackTime = 0f; // Время последней атаки
+    private bool isAttackingWall = true; // Флаг, указывающий, атакует ли моб стену
 
-    public Transform mainBuilding;
-
-    private void Start()
+    void Start()
     {
-        currentHealth = maxHealth; // Устанавливаем начальное количество жизней
-        // Находим стену как цель для движения
-        target = GameObject.FindGameObjectWithTag("Wall").transform;
-        // Подписываемся на событие разрушения стены
-        WallScript.OnWallDestroyed += OpenRoad;
+        currentHealth = maxHealth;
+        target = FindClosestWall(); // На старте ищем ближайшую стену
     }
 
-    private void OnDestroy()
+    void Update()
     {
-        // Отписываемся от события перед уничтожением объекта
-        WallScript.OnWallDestroyed -= OpenRoad;
-    }
+        if (target == null)
+            return;
 
-    private void OpenRoad()
-    {
-        // Устанавливаем флаг в true, когда стена разрушена
-        roadOpen = true;
-    }
+        float distanceToTarget = Vector3.Distance(transform.position, target.position);
 
-    private void Update()
-    {
-        if (roadOpen)
+        // Если расстояние до цели меньше или равно заданной дистанции атаки, моб начинает атаку
+        if (distanceToTarget <= attackDistance)
         {
-            // Если дорога открыта, мобы идут атаковать главное здание
-            MoveTowards(mainBuilding.position);
+            if (Time.time - lastAttackTime > 1f / attackSpeed)
+            {
+                AttackTarget();
+                lastAttackTime = Time.time; // Обновляем время последней атаки
+            }
         }
         else
         {
-            // В противном случае, мобы двигаются в сторону стены
-            MoveTowards(target.position);
+            // Иначе двигаем моба в сторону цели
+            transform.position = Vector3.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+
+            // Поворачиваем моба к цели по оси Y
+            Vector3 direction = (target.position - transform.position).normalized;
+            direction.y = 0; // Обнуляем направление по оси Y, чтобы сохранить только поворот по горизонтали
+            if (direction != Vector3.zero)
+            {
+                Quaternion lookRotation = Quaternion.LookRotation(direction);
+                transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x, lookRotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+            }
         }
     }
 
-    private void MoveTowards(Vector3 targetPosition)
+    void AttackTarget()
     {
-        // Логика движения моба к цели
-        transform.position = Vector3.MoveTowards(transform.position, targetPosition, speed * Time.deltaTime);
+        if (isAttackingWall)
+        {
+            if (target.CompareTag("Wall"))
+            {
+                // Если цель - стена, то наносим ей урон
+                target.GetComponent<WallScript>().TakeDamage(damage);
+            }
+            else if (target.CompareTag("MainBuilding"))
+            {
+                // Если цель - главное здание, выводим сообщение о поражении
+                Debug.Log("Главное здание разрушено! Игра окончена!");
+            }
+        }
+        else
+        {
+            if (target.CompareTag("MainBuilding"))
+            {
+                // Если цель - главное здание, то наносим ему урон
+                target.GetComponent<MainBuildingScript>().TakeDamage(damage);
+            }
+        }
+    }
+
+    // Метод для установки новой цели мобу
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
+    }
+
+    // Метод, вызываемый при разрушении стены
+    public void PathIsClear()
+    {
+        // Устанавливаем новую цель - главное здание
+        target = GameObject.FindGameObjectWithTag("MainBuilding").transform;
+        isAttackingWall = false; // Устанавливаем флаг, что моб атакует главное здание
     }
 
     public void TakeDamage(int damage)
     {
-        currentHealth -= damage; // Уменьшаем количество жизней после получения урона
-
-        // Если у моба закончились жизни, уничтожаем его
+        currentHealth -= damage;
         if (currentHealth <= 0)
         {
-            Destroy(gameObject);
+            Destroy(gameObject); // Уничтожаем моба, если у него не осталось жизней
         }
     }
 
-    private void OnCollisionEnter(Collision collision)
+    Transform FindClosestWall()
     {
-        if (collision.gameObject.CompareTag("Wall"))
+        // Ищем ближайшую стену
+        GameObject[] walls = GameObject.FindGameObjectsWithTag("Wall");
+        Transform closestWall = null;
+        float closestDistance = Mathf.Infinity;
+        foreach (GameObject wall in walls)
         {
-            // Получаем компонент WallScript из объекта стены
-            WallScript wall = collision.gameObject.GetComponent<WallScript>();
-
-            // Проверяем, что компонент WallScript присутствует
-            if (wall != null)
+            float distance = Vector3.Distance(transform.position, wall.transform.position);
+            if (distance < closestDistance)
             {
-                // Уничтожаем стену
-                wall.DestroyWall();
+                closestWall = wall.transform;
+                closestDistance = distance;
             }
         }
+        return closestWall;
     }
+
+    // Остальные методы остаются неизменными
 }

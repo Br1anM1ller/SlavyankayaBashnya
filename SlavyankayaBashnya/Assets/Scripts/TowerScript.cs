@@ -7,6 +7,7 @@ public class TowerScript : MonoBehaviour
     public float attackSpeed = 1f;
     public float detectionRadius = 5f;
     public GameObject arrowPrefab;
+    public Transform arrowSpawnPoint; // Ссылка на точку, откуда выходят стрелы
 
     private float lastAttackTime = 0f;
 
@@ -29,7 +30,7 @@ public class TowerScript : MonoBehaviour
         if (Time.time - lastAttackTime > 1f / attackSpeed)
         {
             // Создание стрелы и направление на моба
-            GameObject arrow = Instantiate(arrowPrefab, transform.position, Quaternion.identity);
+            GameObject arrow = Instantiate(arrowPrefab, arrowSpawnPoint.position, Quaternion.identity);
             arrow.GetComponent<ArrowScript>().SetTarget(target.transform);
             lastAttackTime = Time.time;
         }

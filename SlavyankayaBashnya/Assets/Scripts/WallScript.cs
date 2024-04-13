@@ -4,14 +4,10 @@ using UnityEngine;
 
 public class WallScript : MonoBehaviour
 {
-    public int maxHealth = 40;
+    public int maxHealth = 10;
     private int currentHealth;
 
-    // Добавляем событие для оповещения о разрушении стены
-    public delegate void WallDestroyed();
-    public static event WallDestroyed OnWallDestroyed;
-
-    private void Start()
+    void Start()
     {
         currentHealth = maxHealth;
     }
@@ -21,17 +17,14 @@ public class WallScript : MonoBehaviour
         currentHealth -= damage;
         if (currentHealth <= 0)
         {
-            Debug.Log("Стена разрушена!");
-            if (OnWallDestroyed != null)
-            {
-                OnWallDestroyed(); // Сообщаем о разрушении стены
-            }
-            Destroy(gameObject);
-        }
-    }
+            Destroy(gameObject); // Уничтожаем стену
 
-    public bool IsDestroyed()
-    {
-        return currentHealth <= 0;
+            // После разрушения стены вызываем метод PathIsClear() у всех мобов
+            EnemyScript[] enemies = FindObjectsOfType<EnemyScript>();
+            foreach (EnemyScript enemy in enemies)
+            {
+                enemy.PathIsClear();
+            }
+        }
     }
 }
