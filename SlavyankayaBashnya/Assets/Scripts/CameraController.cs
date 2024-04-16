@@ -2,25 +2,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class CameraController : MonoBehaviour
 {
     public Transform target; // Целевая точка, вокруг которой будет поворачиваться камера
-    public float rotationSpeed = 1f; // Скорость вращения камеры
+    public float rotationStep = 5f; // Шаг вращения камеры
 
     public void RotateCameraLeft()
     {
-        RotateCamera(-1f);
+        RotateCamera(-rotationStep);
     }
 
     public void RotateCameraRight()
     {
-        RotateCamera(1f);
+        RotateCamera(rotationStep);
     }
 
-    void RotateCamera(float direction)
+    void RotateCamera(float angle)
     {
         // Поворачиваем камеру вокруг целевой точки
-        transform.RotateAround(target.position, Vector3.up, direction * rotationSpeed * Time.deltaTime);
+        transform.RotateAround(target.position, Vector3.up, angle);
     }
 }
