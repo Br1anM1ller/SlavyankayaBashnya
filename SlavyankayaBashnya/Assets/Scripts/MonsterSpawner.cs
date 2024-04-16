@@ -1,51 +1,60 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+using TMPro;
 
 public class MonsterSpawner : MonoBehaviour
 {
-    public KilledMonstersScripts gameManager; // Ссылка на GameManager для отслеживания убитых монстров
-    public Transform[] spawnPoints; // массив точек спауна монстров
-    public GameObject[] monsterPrefabs; // массив префабов монстров
-
-    private int currentMonstersToKill = 1; // количество монстров, которых нужно убить в текущей волне
-    private int totalMonstersToKill = 0; // общее количество монстров, которых нужно убить
+    public float waveCooldown = 5f; // Время между волнами
+    public GameObject monsterPrefab; // Префаб монстра
+    public Transform spawnPoint; // Точка спавна монстров
+    private bool waveActive = false; // Флаг, указывающий, идет ли сейчас волна
+    private int monstersInWave = 1; // Количество монстров в текущей волне
 
     void Start()
     {
-        SpawnMonsters(); // начинаем спавнить монстров
+        // Запускаем корутину для отсчета времени перед началом первой волны
+        StartCoroutine(StartWaveCooldown());
     }
 
-    void SpawnMonsters()
+    IEnumerator StartWaveCooldown()
     {
-        // Увеличиваем количество монстров, которых нужно убить
-        currentMonstersToKill = Mathf.Max(1, currentMonstersToKill); // чтобы не было отрицательных значений
-        totalMonstersToKill += currentMonstersToKill;
-
-        // Спауним монстров в зависимости от количества монстров в текущей волне
-        for (int i = 0; i < currentMonstersToKill; i++)
+        while (true)
         {
-            // Выбираем случайную точку спауна и случайного монстра
-            int spawnPointIndex = Random.Range(0, spawnPoints.Length);
-            int monsterIndex = Random.Range(0, monsterPrefabs.Length);
+            // Ждем указанное время перед началом волны
+            yield return new WaitForSeconds(waveCooldown);
 
-            // Спауним монстра
-            Instantiate(monsterPrefabs[monsterIndex], spawnPoints[spawnPointIndex].position, Quaternion.identity);
+            // Если волна уже активна, пропускаем этот цикл
+            if (waveActive)
+                continue;
+
+            // Начинаем новую волну с текущим количеством монстров
+            StartCoroutine(SpawnWave(monstersInWave));
+
+            // Увеличиваем количество монстров в следующей волне
+            monstersInWave++;
         }
     }
 
-    // Метод вызывается, когда монстр убит
-    public void OnMonsterKilled()
+    IEnumerator SpawnWave(int numMonsters)
     {
-        // Уведомляем GameManager об убийстве монстра
-        gameManager.IncrementKilledMonstersCount();
+        waveActive = true; // Устанавливаем флаг активности волны
 
-        // Проверяем, если все монстры в текущей волне убиты
-        if (gameManager.GetKilledMonstersCount() >= totalMonstersToKill)
+        // Спавним монстров
+        for (int i = 0; i < numMonsters; i++)
         {
-            // Начинаем спавнить следующую волну монстров
-            currentMonstersToKill++;
-            SpawnMonsters();
+            Instantiate(monsterPrefab, spawnPoint.position, spawnPoint.rotation);
+            yield return new WaitForSeconds(1f); // Задержка между спавном каждого монстра
         }
+
+        // Ждем, пока все монстры не будут уничтожены
+        while (GameObject.FindGameObjectWithTag("Enemy") != null)
+        {
+            yield return null;
+        }
+
+        // Когда монстры уничтожены, сбрасываем флаг и начинаем отсчет времени до следующей волны
+        waveActive = false;
     }
 }

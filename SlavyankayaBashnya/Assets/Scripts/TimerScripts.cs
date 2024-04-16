@@ -1,51 +1,49 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using System;
 using TMPro;
 
 public class TimerScripts : MonoBehaviour
 {
-    public TextMeshProUGUI timerText; // Ссылка на текстовое поле для отображения времени
-    public KilledMonstersScripts gameManager; // Ссылка на KilledMonstersScripts для отслеживания убитых монстров
+    public TextMeshProUGUI timerText; // Ссылка на компонент TextMeshProUGUI
+    public float timeRemaining = 5f; // Время на отсчет
 
-    private float restTime = 5f; // Время отдыха
-    private int monstersToKill = 1; // Количество монстров, которых нужно убить
-    private bool isResting = true; // Флаг, определяющий, идет ли отдых
-
-    void Update()
+    void Start()
     {
-        // Если идет отдых, обновляем текстовое поле с временем отдыха
-        if (isResting)
+        UpdateTimerText();
+        StartCoroutine(StartWaveCooldown());
+    }
+
+    void UpdateTimerText()
+    {
+        // Обновляем текст с отсчетом времени
+        timerText.text = Mathf.RoundToInt(timeRemaining).ToString();
+    }
+
+    IEnumerator StartWaveCooldown()
+    {
+        // Ждем, пока есть активные враги
+        while (GameObject.FindGameObjectWithTag("Enemy") != null)
         {
-            timerText.text = "Rest Time: " + Mathf.RoundToInt(restTime).ToString();
-            restTime -= Time.deltaTime;
-
-            // Если время отдыха истекло, переходим к бою
-            if (restTime <= 0)
-            {
-                isResting = false;
-                restTime = 0;
-            }
+            yield return null;
         }
-        // Если идет бой, обновляем текстовое поле с количеством оставшихся убить монстров
-        else
+
+        // Когда нет активных врагов, начинаем отсчет времени перед следующей волной
+
+        // Пока есть время перед следующей волной, обновляем текст и ждем одну секунду
+        while (timeRemaining > 0)
         {
-            // Получаем количество убитых монстров из GameManager
-            int killedMonsters = gameManager.killedMonstersCount;
-
-            // Вычисляем количество оставшихся убить монстров
-            int remainingMonsters = monstersToKill - killedMonsters;
-
-            // Обновляем текстовое поле
-            timerText.text = "Monsters to Kill: " + remainingMonsters;
-
-            // Если осталось убить всех монстров, переходим к отдыху
-            if (remainingMonsters <= 0)
-            {
-                isResting = true;
-                monstersToKill++; // Увеличиваем количество монстров для следующей волны
-            }
+            UpdateTimerText();
+            yield return new WaitForSeconds(1f);
+            timeRemaining -= 1f;
         }
+
+        // Когда время вышло, сбрасываем таймер и устанавливаем текст в "5"
+        timeRemaining = 5f;
+        UpdateTimerText();
+
+        // Запускаем новый отсчет времени перед следующей волной
+        StartCoroutine(StartWaveCooldown());
     }
 }
