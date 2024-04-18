@@ -7,6 +7,7 @@ public class TowerPlacement : MonoBehaviour
 {
     public GameObject towerBuildPanel; // Ссылка на объект с панелью построек
     private TowerBuildPanel buildPanelScript; // Ссылка на скрипт панели построек
+    private bool canBuild = true; // Переменная, определяющая, можно ли строить башню в данный момент
 
     void Start()
     {
@@ -16,8 +17,8 @@ public class TowerPlacement : MonoBehaviour
 
     void Update()
     {
-        // Проверяем, нажата ли кнопка мыши
-        if (Input.GetMouseButtonDown(0))
+        // Проверяем, нажата ли кнопка мыши и разрешено ли строительство
+        if (Input.GetMouseButtonDown(0) && canBuild)
         {
             // Получаем выбранный префаб башни из скрипта панели построек
             GameObject selectedTowerPrefab = buildPanelScript.GetSelectedTowerPrefab();
@@ -31,10 +32,27 @@ public class TowerPlacement : MonoBehaviour
 
                 if (Physics.Raycast(ray, out hit, Mathf.Infinity))
                 {
-                    // Создаем новый экземпляр выбранной башни на точке столкновения луча с землей
-                    Instantiate(selectedTowerPrefab, hit.point, Quaternion.identity);
+                    // Переместить башню над поверхностью земли, учитывая высоту башни
+                    Vector3 towerPosition = hit.point + new Vector3(0, selectedTowerPrefab.GetComponent<Renderer>().bounds.extents.y, 0);
+
+                    // Создаем новый экземпляр выбранной башни на точке над поверхностью земли
+                    Instantiate(selectedTowerPrefab, towerPosition, Quaternion.identity);
+
+                    // Устанавливаем флаг разрешения строительства в false
+                    canBuild = false;
                 }
             }
         }
+    }
+
+    // Метод для включения возможности строительства
+    public void EnableBuilding()
+    {
+        canBuild = true;
+    }
+
+    public void SetBuildingPermission(bool permission)
+    {
+        canBuild = permission;
     }
 }
